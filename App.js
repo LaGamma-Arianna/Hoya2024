@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, Image } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Image, Dimensions, Platform } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import image1 from './assets/amp1.JPG';
-import image2 from './assets/amp2.JPG';
-import image3 from './assets/amp3.JPG';
 
+
+const { width, height } = Dimensions.get('window');
 export default function App() {
   const [markers, setMarkers] = useState([
     { key: '1', coords: { latitude: 37.274332, longitude: -76.703926 }, title: 'Colonial Williamsburg', description: 'Description for Colonial Williamsburg', image: image1 },
@@ -12,17 +12,31 @@ export default function App() {
     // ... add more markers with images as needed
   ]);
 
+  const [selectedImage, setSelectedImage] = useState(markers[0].image);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [titleAndDescription, setTitleAndDescription] = useState({
+    title: markers[0].title, 
+    description: markers[0].description, 
+  });
   const [currentMarker, setCurrentMarker] = useState(markers[0]);
   const mapRef = useRef(null);
   const markerRefs = useRef([]);
+
+useEffect(() => {
+    // CHANGED: SETTING THE SELECTED IMAGE AND TITLE/DESCRIPTION WHEN CURRENT INDEX CHANGES
+    setSelectedImage(markers[currentIndex].image);
+    setTitleAndDescription({
+      title: markers[currentIndex].title,
+      description: markers[currentIndex].description,
+    });
+  }, [currentIndex, markers]);
 
   useEffect(() => {
     if (markerRefs.current[currentIndex]) {
       markerRefs.current[currentIndex].showCallout();
     }
     setCurrentMarker(markers[currentIndex]);
-  }, [currentIndex]);
+  }, [currentIndex, markers]);
 
   const goToNextMarker = () => {
     let nextIndex = currentIndex + 1;
@@ -52,6 +66,10 @@ export default function App() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.infoContainer}>
+        <Text style={styles.title}>{titleAndDescription.title}</Text>
+        <Text style={styles.description}>{titleAndDescription.description}</Text>
+      </View> 
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -73,7 +91,7 @@ export default function App() {
               <View style={styles.calloutView}>
                 <Text style={styles.calloutTitle}>{marker.title}</Text>
                 <Text>{marker.description}</Text>
-                {currentMarker && currentMarker.key === marker.key && (
+                {currentMarker && currentMarker.key === marker.key && !selectedImage && (
                   <Image
                     source={marker.image}
                     style={styles.calloutImage}
@@ -85,6 +103,17 @@ export default function App() {
           </Marker>
         ))}
       </MapView>
+
+      {selectedImage && ( // CHANGED: ADDED CONDITIONAL RENDERING FOR SELECTED IMAGE
+        <View style={styles.imageContainer}>
+          <Image
+            source={selectedImage}
+            style={styles.bottomImage}
+            resizeMode="contain"
+          />
+        </View>
+      )}
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={goToPreviousMarker}>
           <Text style={styles.buttonText}>Back</Text>
@@ -132,14 +161,29 @@ const styles = StyleSheet.create({
     bottom: 10,
     left: 0,
     right: 0,
+    padding: 10
   },
-  markerImage: {
-    width: 40,
-    height: 40,
+  imageContainer: { // CHANGED: CONTAINER FOR THE IMAGE AT THE BOTTOM
+    position: 'absolute',
+    bottom: 88, 
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10
   },
-   calloutImage: {
-    width: 400, // Increase the width
-    height: 400, // Increase the height
-    // You can also include other styles if needed, like borderRadius, etc.
+  infoContainer: { // Style for the container of title and description
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 40 : 20,
+    width: '100%',
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    zIndex: 10,
   },
+  bottomImage: {
+    width: width,
+    height: height/3,
+    borderRadius: 10,
+  }
 });
